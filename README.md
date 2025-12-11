@@ -88,12 +88,18 @@ simplesql/
 
 ### 1. Download and Setup Model
 
+**Note:** Some models (like `google/gemma-2b-it`) require Hugging Face authentication. See [HUGGINGFACE_AUTH.md](HUGGINGFACE_AUTH.md) for setup instructions.
+
 ```bash
+# Use default config.yaml
 python scripts/download_model.py
+
+# Or specify a different config file
+python scripts/download_model.py --config config-gemma2b.yaml
 ```
 
 This will:
-- Download the model from Hugging Face
+- Download the model from Hugging Face (as specified in the config file)
 - Convert it to Ollama format (if needed)
 - Import it into Ollama
 

@@ -26,11 +26,15 @@
 ### 1. Download and Setup Model
 
 ```bash
+# Use default config.yaml
 python scripts/download_model.py
+
+# Or specify a different config file
+python scripts/download_model.py --config config-gemma2b.yaml
 ```
 
 This will:
-- Download the model from Hugging Face (configured in `config.yaml`)
+- Download the model from Hugging Face (configured in the specified config file)
 - Attempt to import it to Ollama
 - Note: Some models may need manual conversion to GGUF format
 

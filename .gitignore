@@ -25,6 +25,7 @@ venv/
 env/
 ENV/
 .venv
+.env
 
 # IDE
 .vscode/
@@ -39,6 +40,10 @@ data/
 results/
 *.log
 wandb/
+cursor_plan_for_finetuning_text_to_sql.md
+debug_mps.py
+working-notes.txt
+
 
 # Environment variables
 .env

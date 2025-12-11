@@ -1,0 +1,79 @@
+# Configuration for Gemma 3 1B Text-to-SQL (Pre-finetuned) - Optimized for macOS 8GB RAM
+
+model:
+  # Hugging Face model identifier - Pre-finetuned for text-to-SQL!
+  name: "Yuk050/gemma-3-1b-text-to-sql-model"
+  # Name to use in Ollama
+  ollama_name: "gemma-sql:1b"
+  # Generation parameters
+  max_tokens: 512
+  temperature: 0.1
+  top_p: 0.9
+
+benchmark:
+  # Benchmark dataset name (spider, wikisql, bird)
+  name: "spider"
+  # Test split to use
+  test_split: "test"
+  # Path to benchmark databases
+  database_path: "./data/benchmarks/spider/database"
+  # Path to benchmark data files
+  data_path: "./data/benchmarks/spider"
+
+evaluation:
+  # Metrics to calculate
+  metrics:
+    - "exact_match"
+    - "execution_accuracy"
+  # Timeout for query execution (seconds)
+  timeout: 30
+  # Number of examples to evaluate (set to null for all)
+  max_examples: null
+
+finetuning:
+  # Finetuning method: lora (qlora not available without bitsandbytes)
+  method: "lora"
+  # LoRA parameters - smaller for 1B model
+  lora_r: 4
+  lora_alpha: 8
+  lora_dropout: 0.1
+  # Training parameters - optimized for 8GB RAM
+  # Lower LR since model is already finetuned
+  learning_rate: 1e-4
+  batch_size: 2  # Can use slightly larger batch with 1B model
+  num_epochs: 2  # Fewer epochs needed for already-finetuned model
+  gradient_accumulation_steps: 4
+  max_seq_length: 1024
+  # Quantization (DISABLED for Apple Silicon)
+  load_in_4bit: false  # Cannot use on Apple Silicon
+  load_in_8bit: false  # Cannot use on Apple Silicon
+  # Output directory for checkpoints
+  output_dir: "./models/finetuned-gemma1b-sql"
+  # Save steps
+  save_steps: 500
+  # Evaluation during training
+  eval_steps: 500
+
+ollama:
+  # Ollama API base URL
+  base_url: "http://localhost:11434"
+  # Request timeout (seconds)
+  timeout: 300
+  # Model context window
+  context_window: 4096
+
+paths:
+  # Directory for downloaded models
+  models_dir: "./models"
+  # Directory for benchmark data
+  data_dir: "./data"
+  # Directory for results
+  results_dir: "./results"
+
+logging:
+  # Logging level: DEBUG, INFO, WARNING, ERROR
+  level: "INFO"
+  # Use wandb for experiment tracking
+  use_wandb: false
+  wandb_project: "text-to-sql-finetuning"
+
