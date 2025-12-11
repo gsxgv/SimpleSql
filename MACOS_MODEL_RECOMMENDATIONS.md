@@ -284,6 +284,22 @@ python scripts/finetune_model.py --config config-gemma2b.yaml
 | T5-Small SQL | 60M | ~120MB | ⭐⭐⭐ | ⚠️ Different arch | ❌ No | Lightweight |
 | TinyLlama | 1.1B | ~2GB | ⭐⭐ | ✅ Easy | ✅ Yes | Experimentation |
 
+## Model Comparison for Param Count and QLoRA for MacOS or large GPUs
+
+
+| Model (Hugging Face ID) | Param Count | Needs QLoRA? | macOS 8 GB guidance |
+  | --- | --- | --- | --- |
+  | TinyLlama/TinyLlama-1.1B-Chat-v1.0 | 1.1 B | No | Fine with plain LoRA; run micro-batch 2 and seq ≤1k. |
+  | deepseek-ai/DeepSeek-Coder-1.3B-base | 1.3 B | No | Fits comfortably; expect slower CPU training but no quantization needed. |
+  | Qwen/Qwen1.5-1.8B-Chat | 1.8 B | No | Works with LoRA if you keep batch size 1–2 and enable gradient checkpointing. |
+  | google/gemma-2-2b | 2.6 B | No | Tight but feasible; use bfloat16/float16 weights and short contexts. |
+  | microsoft/phi-2 | 2.7 B | No | Similar footprint to Gemma 2B; LoRA plus checkpointing keeps memory under 8 GB. |
+  | openlm-research/open_llama_3b | 3.0 B | Yes | Needs 4-bit QLoRA to fit; not workable without quantization. |
+  | openchat/openchat_3.5-0106 | 3.0 B | Yes | Requires 4-bit loading; skip unless you gain QLoRA support. |
+  | microsoft/phi-3-mini-4k-instruct | 3.8 B | Yes | Exceeds 8 GB without quantization; not recommended on macOS. |
+  | mistralai/Mistral-7B-Instruct-v0.2 | 7.0 B | Yes | Needs QLoRA + GPU VRAM; far beyond an 8 GB Mac. |
+  | google/gemma-2-9b-it | 9.0 B | Yes | Only practical with GPU quantization; treat as out of scope locally. |
+
 ## Recommendations by Use Case
 
 ### 🎯 **Best Overall: Gemma 2B**
