@@ -1,0 +1,10 @@
+name: finetuning
+channels:
+  - conda-forge
+  - defaults
+  - huggingface # for transformers, datasets, peft, accelerate, wandb
+dependencies:
+  - python>=3.10
+  - pip
+  - pip:
+    - -r requirements-macos.txt  # Use macOS-compatible requirements

@@ -1,0 +1,79 @@
+# macOS/Apple Silicon Optimized Configuration
+# Note: QLoRA (4-bit quantization) is disabled as bitsandbytes doesn't work on Apple Silicon
+
+model:
+  # Hugging Face model identifier
+  name: "defog/sqlcoder-7b-2"
+  # Name to use in Ollama
+  ollama_name: "sqlcoder-7b"
+  # Generation parameters
+  max_tokens: 512
+  temperature: 0.1
+  top_p: 0.9
+
+benchmark:
+  # Benchmark dataset name (spider, wikisql, bird)
+  name: "spider"
+  # Test split to use
+  test_split: "test"
+  # Path to benchmark databases
+  database_path: "./data/benchmarks/spider/database"
+  # Path to benchmark data files
+  data_path: "./data/benchmarks/spider"
+
+evaluation:
+  # Metrics to calculate
+  metrics:
+    - "exact_match"
+    - "execution_accuracy"
+  # Timeout for query execution (seconds)
+  timeout: 30
+  # Number of examples to evaluate (set to null for all)
+  max_examples: null
+
+finetuning:
+  # Finetuning method: lora (qlora not available without bitsandbytes)
+  method: "lora"
+  # LoRA parameters
+  lora_r: 8  # Reduced from 16 for memory efficiency
+  lora_alpha: 16  # Reduced from 32
+  lora_dropout: 0.1
+  # Training parameters - optimized for 8GB RAM
+  learning_rate: 2e-4
+  batch_size: 1  # Reduced from 4 - critical for 8GB RAM
+  num_epochs: 2  # Reduced from 3
+  gradient_accumulation_steps: 8  # Increased from 4 to maintain effective batch size
+  max_seq_length: 1024  # Reduced from 2048 for memory efficiency
+  # Quantization (DISABLED for Apple Silicon)
+  load_in_4bit: false  # Cannot use on Apple Silicon
+  load_in_8bit: false  # Cannot use on Apple Silicon
+  # Output directory for checkpoints
+  output_dir: "./models/finetuned"
+  # Save steps
+  save_steps: 500
+  # Evaluation during training
+  eval_steps: 500
+
+ollama:
+  # Ollama API base URL
+  base_url: "http://localhost:11434"
+  # Request timeout (seconds)
+  timeout: 300
+  # Model context window
+  context_window: 4096
+
+paths:
+  # Directory for downloaded models
+  models_dir: "./models"
+  # Directory for benchmark data
+  data_dir: "./data"
+  # Directory for results
+  results_dir: "./results"
+
+logging:
+  # Logging level: DEBUG, INFO, WARNING, ERROR
+  level: "INFO"
+  # Use wandb for experiment tracking
+  use_wandb: false
+  wandb_project: "text-to-sql-finetuning"
+

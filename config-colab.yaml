@@ -1,0 +1,83 @@
+# Google Colab Optimized Configuration
+# This config is optimized for Colab's GPU environment
+
+model:
+  # Hugging Face model identifier
+  name: "defog/sqlcoder-7b-2"
+  # Name to use in Ollama (if using Ollama)
+  ollama_name: "sqlcoder-7b"
+  # Generation parameters
+  max_tokens: 512
+  temperature: 0.1
+  top_p: 0.9
+
+benchmark:
+  # Benchmark dataset name (spider, wikisql, bird)
+  name: "spider"
+  # Test split to use
+  test_split: "test"
+  # Path to benchmark databases
+  database_path: "./data/benchmarks/spider/database"
+  # Path to benchmark data files
+  data_path: "./data/benchmarks/spider"
+
+evaluation:
+  # Metrics to calculate
+  metrics:
+    - "exact_match"
+    - "execution_accuracy"
+  # Timeout for query execution (seconds)
+  timeout: 30
+  # Number of examples to evaluate (set to null for all)
+  max_examples: null
+
+finetuning:
+  # Finetuning method: qlora (works in Colab with CUDA!)
+  method: "qlora"
+  # LoRA parameters
+  lora_r: 16
+  lora_alpha: 32
+  lora_dropout: 0.1
+  # Training parameters - optimized for Colab GPU
+  learning_rate: 2e-4
+  batch_size: 4  # Can use larger batches with GPU
+  num_epochs: 3
+  gradient_accumulation_steps: 4
+  max_seq_length: 2048  # Can use longer sequences with GPU
+  # Quantization (WORKS in Colab with CUDA!)
+  load_in_4bit: true  # QLoRA works perfectly in Colab
+  load_in_8bit: false
+  # Output directory for checkpoints
+  output_dir: "./models/finetuned"
+  # Save steps (more frequent for Colab sessions)
+  save_steps: 100  # Save every 100 steps to avoid losing progress
+  # Evaluation during training
+  eval_steps: 500
+
+ollama:
+  # Ollama API base URL (if using Ollama in Colab)
+  base_url: "http://localhost:11434"
+  # Request timeout (seconds)
+  timeout: 300
+  # Model context window
+  context_window: 4096
+
+paths:
+  # Directory for downloaded models
+  models_dir: "./models"
+  # Directory for benchmark data
+  data_dir: "./data"
+  # Directory for results
+  results_dir: "./results"
+  # Optional: Use Google Drive for persistence
+  # Uncomment and update if using Drive:
+  # models_dir: "/content/drive/MyDrive/simplesql/models"
+  # results_dir: "/content/drive/MyDrive/simplesql/results"
+
+logging:
+  # Logging level: DEBUG, INFO, WARNING, ERROR
+  level: "INFO"
+  # Use wandb for experiment tracking (recommended in Colab)
+  use_wandb: false  # Set to true and login with wandb.login() to enable
+  wandb_project: "text-to-sql-finetuning"
+
