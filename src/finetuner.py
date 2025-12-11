@@ -78,13 +78,28 @@ class TextToSQLFinetuner:
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
         
+        # Check for Apple Silicon (MPS) or CUDA
+        use_mps = torch.backends.mps.is_available() if hasattr(torch.backends, 'mps') else False
+        use_cuda = torch.cuda.is_available()
+        
         # Load model with quantization if specified
         model_kwargs = {
             'trust_remote_code': True,
-            'device_map': 'auto' if torch.cuda.is_available() else None,
+            'device_map': 'auto' if (use_cuda or use_mps) else None,
         }
         
-        if self.load_in_4bit:
+        # Check if bitsandbytes is available (only works on CUDA)
+        bitsandbytes_available = False
+        if use_cuda and self.load_in_4bit:
+            try:
+                from transformers import BitsAndBytesConfig
+                bitsandbytes_available = True
+            except ImportError:
+                logger.warning("bitsandbytes not available. QLoRA requires CUDA. Using LoRA instead.")
+                self.load_in_4bit = False
+                self.load_in_8bit = False
+        
+        if self.load_in_4bit and bitsandbytes_available:
             from transformers import BitsAndBytesConfig
             model_kwargs['quantization_config'] = BitsAndBytesConfig(
                 load_in_4bit=True,
@@ -93,15 +108,45 @@ class TextToSQLFinetuner:
                 bnb_4bit_quant_type="nf4"
             )
             logger.info("Loading model in 4-bit quantization")
-        elif self.load_in_8bit:
+        elif self.load_in_8bit and bitsandbytes_available:
             model_kwargs['load_in_8bit'] = True
             logger.info("Loading model in 8-bit quantization")
+        elif (self.load_in_4bit or self.load_in_8bit) and not bitsandbytes_available:
+            logger.warning(
+                "Quantization requested but bitsandbytes not available. "
+                "This is expected on Apple Silicon. Using FP16/FP32 instead."
+            )
+            # Use FP16 on MPS, FP32 on CPU
+            if use_mps:
+                model_kwargs['torch_dtype'] = torch.float16
+                logger.info("Using FP16 on Apple Silicon (MPS)")
+            else:
+                model_kwargs['torch_dtype'] = torch.float32
+                logger.info("Using FP32 on CPU")
+        
+        # Determine dtype based on available hardware
+        use_mps = torch.backends.mps.is_available() if hasattr(torch.backends, 'mps') else False
+        use_cuda = torch.cuda.is_available()
+        
+        if 'torch_dtype' not in model_kwargs:
+            if use_cuda or use_mps:
+                model_kwargs['torch_dtype'] = torch.float16
+            else:
+                model_kwargs['torch_dtype'] = torch.float32
         
         self.model = AutoModelForCausalLM.from_pretrained(
             self.model_name,
-            torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
             **model_kwargs
         )
+        
+        # Move to appropriate device
+        if use_mps:
+            self.model = self.model.to('mps')
+            logger.info("Model moved to MPS (Apple Silicon GPU)")
+        elif use_cuda:
+            logger.info("Model on CUDA")
+        else:
+            logger.info("Model on CPU")
         
         logger.info("Model and tokenizer loaded successfully")
     
@@ -193,9 +238,16 @@ class TextToSQLFinetuner:
         if self.method not in ['lora', 'qlora']:
             raise ValueError(f"Unsupported finetuning method: {self.method}")
         
-        # Prepare model for training if using QLoRA
+        # Prepare model for training if using QLoRA (only if bitsandbytes is available)
         if self.method == 'qlora' and (self.load_in_4bit or self.load_in_8bit):
-            self.model = prepare_model_for_kbit_training(self.model)
+            try:
+                self.model = prepare_model_for_kbit_training(self.model)
+            except Exception as e:
+                logger.warning(
+                    f"Could not prepare model for k-bit training: {e}. "
+                    "This is expected on Apple Silicon. Falling back to LoRA."
+                )
+                self.method = 'lora'
         
         # Configure LoRA
         lora_config = LoraConfig(
@@ -280,7 +332,7 @@ class TextToSQLFinetuner:
             evaluation_strategy="steps" if eval_dataset else "no",
             save_total_limit=3,
             load_best_model_at_end=True if eval_dataset else False,
-            fp16=torch.cuda.is_available(),
+            fp16=torch.cuda.is_available() or (torch.backends.mps.is_available() if hasattr(torch.backends, 'mps') else False),
             bf16=False,
             report_to="wandb" if self.config['logging'].get('use_wandb', False) else None,
         )
